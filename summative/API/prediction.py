@@ -20,7 +20,7 @@ app = FastAPI(
     description=(
         "Multivariate regression API that predicts a student's "
         "Total_Score (0-100) using mid-semester academic performance and "
-        "socioeconomic indicators."
+        "socioeconomic indicators. "
         "The goal of the system is to track students' progress and help those"
         "who are left behind, or need assistance."
     ),
@@ -29,7 +29,7 @@ app = FastAPI(
 
 
 # CORS MIDDLEWARE CONFIGURATION)
- #Allow only my own deployed API page and local debug addresses.
+#Allow only my own deployed API page and local debug addresses.
 # Restrict all other websites, so random sites cannot call the API from a browser.
 # Methods and headers are limited to what the app needs.
 ALLOWED_ORIGINS = [
@@ -39,7 +39,7 @@ ALLOWED_ORIGINS = [
     "http://localhost:8080",
     "http://127.0.0.1:8000",
     "http://127.0.0.1:8080",
-    "https://your-service.onrender.com
+    "https://performance-checker-service.onrender.com"
 ]
 
 app.add_middleware(
@@ -233,3 +233,73 @@ def predict_score(student: StudentPredictionInput):
         risk_status=risk_status,
         message=message,
     )
+
+@app.post("/retrain", tags=["Retraining"])
+async def retrain_model(file: UploadFile = File(..., description="CSV file containing new student records")):
+    """
+    Accepts an uploaded CSV file with student records, validates required columns,
+    updates the regression model (using partial_fit for SGDRegressor or full Pipeline
+    refitting on combined data for closed-form/tree models), saves best_model.pkl
+    """
+    global model_pipeline
+
+    if not file.filename.lower().endswith(".csv"):
+        raise HTTPException(status_code=400, detail="Uploaded file must be a .csv file.")
+
+    if model_pipeline is None:
+        try:
+            model_pipeline = load_model_pipeline()
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Cannot load existing pipeline: {str(exc)}")
+
+    # Read the uploaded CSV bytes into a pandas DataFrame
+    try:
+        contents = await file.read()
+        new_df = pd.read_csv(io.BytesIO(contents))
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Could not parse CSV file: {str(exc)}")
+
+    # Verify all 8 feature columns and the target column (Total_Score) exist in the uploaded CSV
+    required_cols = FEATURE_COLUMNS + [TARGET_COLUMN]
+    missing_cols = [col for col in required_cols if col not in new_df.columns]
+    if missing_cols:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Uploaded CSV is missing required columns: {missing_cols}",
+        )
+
+    # Clean the uploaded data (restore 'None' in Parent_Education_Level and drop incomplete rows)
+    new_df["Parent_Education_Level"] = new_df["Parent_Education_Level"].fillna("None")
+    new_df = new_df.dropna(subset=required_cols)
+
+    if len(new_df) == 0:
+        raise HTTPException(status_code=400, detail="Uploaded CSV contains 0 valid rows after cleaning.")
+
+    X_new = new_df[FEATURE_COLUMNS].copy()
+    y_new = new_df[TARGET_COLUMN].copy()
+
+    # Update the model based on whether the active estimator supports incremental learning (partial_fit)
+    try:
+        preprocessor = model_pipeline.named_steps["preprocessor"]
+        regressor = model_pipeline.named_steps["regressor"]
+        X_new_transformed = preprocessor.transform(X_new)
+        regressor.partial_fit(X_new_transformed, y_new)
+        updated_preds = model_pipeline.predict(X_new)
+        new_batch_mse = float(mean_squared_error(y_new, updated_preds))
+        joblib.dump(model_pipeline, MODEL_PATH)
+
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Retraining failed: {str(exc)}")
+
+    return {
+        "status": "success",
+        "message": "Model updated via partial_fit, saved to best_model.pkl.",
+        "new_rows_uploaded": len(new_df),
+        "mse_on_uploaded_batch": round(new_batch_mse, 4),
+    }
+
+if __name__ == "__main__":
+    import uvicorn
+
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("prediction:app", host="0.0.0.0", port=port, reload=True)
