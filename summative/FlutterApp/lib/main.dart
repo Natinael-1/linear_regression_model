@@ -43,7 +43,7 @@ class PredictionScreen extends StatefulWidget {
 
 class _PredictionScreenState extends State<PredictionScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  static const String _apiUrl = 'https://your-service.onrender.com/predict';
+  static const String _apiUrl = "http://10.0.2.2:8000/predict"; //'https://your-service.onrender.com/predict';
 
   // Controllers for the 5 numeric percentage inputs (0.0 - 100.0)
   final TextEditingController _attendanceController = TextEditingController();
@@ -57,7 +57,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
   String _familyIncome = 'Medium';
   String _parentEducation = 'High School';
 
-  // Allowed dropdown options matching our Pydantic schema exactly
+  // Allowed dropdown options matching our Pydantic schema
   final List<String> _internetOptions = ['Yes', 'No'];
   final List<String> _incomeOptions = ['Low', 'Medium', 'High'];
   final List<String> _educationOptions = [
@@ -77,7 +77,6 @@ class _PredictionScreenState extends State<PredictionScreen> {
 
   @override
   void dispose() {
-    // Always clean up controllers to prevent memory leaks
     _attendanceController.dispose();
     _midtermController.dispose();
     _assignmentsController.dispose();
@@ -97,7 +96,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
     if (number < 0.0 || number > 100.0) {
       return 'Must be 0.0 to 100.0';
     }
-    return null; // Null means validation passed
+    return null; 
   }
 
   // Clears all text controllers, resets dropdowns to defaults, and hides results/errors.
@@ -200,7 +199,6 @@ class _PredictionScreenState extends State<PredictionScreen> {
           )
         ],
       ),
-      // SingleChildScrollView prevents keyboard overflow errors on small screens
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
@@ -237,7 +235,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
                 _buildNumericField(_projectsController, 'Projects Score', Icons.science),
                 const SizedBox(height: 24),
 
-                // 3. SOCIOECONOMIC INDICATORS SECTION
+                // SOCIOECONOMIC INDICATORS SECTION
                 const Text('Socioeconomic Context', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const Divider(),
                 _buildDropdownField(

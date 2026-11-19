@@ -1,4 +1,3 @@
-import io
 import os
 from typing import Literal
 
@@ -8,12 +7,11 @@ import pandas as pd
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from sklearn.metrics import mean_squared_error
 
-# Use paths relative to this script so Render and local execution both find the files
+from retrain import retrain_model_from_csv
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "best_model.pkl")
-
 
 app = FastAPI(
     title="Student Academic Performance and Early Warning System",
@@ -21,17 +19,12 @@ app = FastAPI(
         "Multivariate regression API that predicts a student's "
         "Total_Score (0-100) using mid-semester academic performance and "
         "socioeconomic indicators. "
-        "The goal of the system is to track students' progress and help those"
+        "The goal of the system is to track students' progress and help those "
         "who are left behind, or need assistance."
     ),
     version="1.0.0",
 )
 
-
-# CORS MIDDLEWARE CONFIGURATION)
-#Allow only my own deployed API page and local debug addresses.
-# Restrict all other websites, so random sites cannot call the API from a browser.
-# Methods and headers are limited to what the app needs.
 ALLOWED_ORIGINS = [
     "http://localhost",
     "http://localhost:3000",
@@ -39,7 +32,7 @@ ALLOWED_ORIGINS = [
     "http://localhost:8080",
     "http://127.0.0.1:8000",
     "http://127.0.0.1:8080",
-    "https://performance-checker-service.onrender.com"
+    "https://performance-checker-service.onrender.com",
 ]
 
 app.add_middleware(
@@ -50,9 +43,6 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization", "Accept"],
 )
 
-
-# Feature definitions and Pydantic validation schemas.
-# column names expected by trained scikit-learn Pipeline in best_model.pkl
 NUMERIC_FEATURES = [
     "Attendance (%)",
     "Midterm_Score",
@@ -72,11 +62,6 @@ TARGET_COLUMN = "Total_Score"
 
 
 class StudentPredictionInput(BaseModel):
-    """
-    Pydantic schema enforcing strict data types,percentage bounds (0.0 to 100.0),
-    and allowed categorical values for all 8 input features.
-    """
-
     attendance: float = Field(
         ...,
         ge=0.0,
@@ -130,16 +115,12 @@ class StudentPredictionInput(BaseModel):
 
 
 class PredictionResponse(BaseModel):
-    """Schema for the JSON response returned by POST /predict."""
-
     predicted_total_score: float
     risk_status: str
     message: str
 
 
-# Model loading and prediction function
 def load_model_pipeline(path: str = MODEL_PATH):
-    """Loads the serialized scikit-learn Pipeline (preprocessor + regressor) from disk."""
     if not os.path.exists(path):
         raise FileNotFoundError(
             f"Model file not found at '{path}'. Please run multivariate.ipynb first to generate best_model.pkl."
@@ -147,7 +128,6 @@ def load_model_pipeline(path: str = MODEL_PATH):
     return joblib.load(path)
 
 
-# Load the trained pipeline into memory at server startup
 try:
     model_pipeline = load_model_pipeline()
 except Exception as e:
@@ -156,10 +136,6 @@ except Exception as e:
 
 
 def predict_single_student(input_data: dict, pipeline=None) -> float:
-    """
-    prediction function that accepts a dictionary of
-    8 raw student features, transforms them via the Pipeline, and returns Total_Score.
-    """
     active_pipeline = pipeline if pipeline is not None else load_model_pipeline()
     input_df = pd.DataFrame([input_data])
     raw_prediction = active_pipeline.predict(input_df)[0]
@@ -167,11 +143,8 @@ def predict_single_student(input_data: dict, pipeline=None) -> float:
     return round(clamped_prediction, 2)
 
 
-
-# (GET /) & (POST /predict)
 @app.get("/", tags=["Check If Active"])
 def root():
-    """check endpoint verifying that the API service and model pipeline are active."""
     model_loaded = model_pipeline is not None
     regressor_name = (
         type(model_pipeline.named_steps["regressor"]).__name__
@@ -189,10 +162,6 @@ def root():
 
 @app.post("/predict", response_model=PredictionResponse, tags=["Prediction"])
 def predict_score(student: StudentPredictionInput):
-    """
-    Predicts a student's Total_Score (0.0 - 100.0) from 8 mid-semester
-    academic and socioeconomic features.
-    """
     global model_pipeline
 
     if model_pipeline is None:
@@ -201,7 +170,6 @@ def predict_score(student: StudentPredictionInput):
         except Exception as exc:
             raise HTTPException(status_code=500, detail=f"Model pipeline unavailable: {str(exc)}")
 
-    # Map clean snake_case Pydantic fields back to the CSV column names expected by the Pipeline
     feature_row = {
         "Attendance (%)": student.attendance,
         "Midterm_Score": student.midterm_score,
@@ -234,16 +202,12 @@ def predict_score(student: StudentPredictionInput):
         message=message,
     )
 
+
 @app.post("/retrain", tags=["Retraining"])
 async def retrain_model(file: UploadFile = File(..., description="CSV file containing new student records")):
-    """
-    Accepts an uploaded CSV file with student records, validates required columns,
-    updates the regression model (using partial_fit for SGDRegressor or full Pipeline
-    refitting on combined data for closed-form/tree models), saves best_model.pkl
-    """
     global model_pipeline
 
-    if not file.filename.lower().endswith(".csv"):
+    if not file.filename or not file.filename.lower().endswith(".csv"):
         raise HTTPException(status_code=400, detail="Uploaded file must be a .csv file.")
 
     if model_pipeline is None:
@@ -252,51 +216,16 @@ async def retrain_model(file: UploadFile = File(..., description="CSV file conta
         except Exception as exc:
             raise HTTPException(status_code=500, detail=f"Cannot load existing pipeline: {str(exc)}")
 
-    # Read the uploaded CSV bytes into a pandas DataFrame
-    try:
-        contents = await file.read()
-        new_df = pd.read_csv(io.BytesIO(contents))
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Could not parse CSV file: {str(exc)}")
+    contents = await file.read()
+    model_pipeline, result = retrain_model_from_csv(
+        model_pipeline=model_pipeline,
+        contents=contents,
+        model_path=MODEL_PATH,
+        feature_columns=FEATURE_COLUMNS,
+        target_column=TARGET_COLUMN,
+    )
+    return result
 
-    # Verify all 8 feature columns and the target column (Total_Score) exist in the uploaded CSV
-    required_cols = FEATURE_COLUMNS + [TARGET_COLUMN]
-    missing_cols = [col for col in required_cols if col not in new_df.columns]
-    if missing_cols:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Uploaded CSV is missing required columns: {missing_cols}",
-        )
-
-    # Clean the uploaded data (restore 'None' in Parent_Education_Level and drop incomplete rows)
-    new_df["Parent_Education_Level"] = new_df["Parent_Education_Level"].fillna("None")
-    new_df = new_df.dropna(subset=required_cols)
-
-    if len(new_df) == 0:
-        raise HTTPException(status_code=400, detail="Uploaded CSV contains 0 valid rows after cleaning.")
-
-    X_new = new_df[FEATURE_COLUMNS].copy()
-    y_new = new_df[TARGET_COLUMN].copy()
-
-    # Update the model based on whether the active estimator supports incremental learning (partial_fit)
-    try:
-        preprocessor = model_pipeline.named_steps["preprocessor"]
-        regressor = model_pipeline.named_steps["regressor"]
-        X_new_transformed = preprocessor.transform(X_new)
-        regressor.partial_fit(X_new_transformed, y_new)
-        updated_preds = model_pipeline.predict(X_new)
-        new_batch_mse = float(mean_squared_error(y_new, updated_preds))
-        joblib.dump(model_pipeline, MODEL_PATH)
-
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Retraining failed: {str(exc)}")
-
-    return {
-        "status": "success",
-        "message": "Model updated via partial_fit, saved to best_model.pkl.",
-        "new_rows_uploaded": len(new_df),
-        "mse_on_uploaded_batch": round(new_batch_mse, 4),
-    }
 
 if __name__ == "__main__":
     import uvicorn
