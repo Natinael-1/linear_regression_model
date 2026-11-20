@@ -214,7 +214,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
                   child: const Padding(
                     padding: EdgeInsets.all(16.0),
                     child: Text(
-                      "Enter the student's mid-semester academic metrics and socioeconomic indicators to predict their final cumulative score.",
+                      "Enter the student's mid-semester progress using the metrics like attendance, mid term exam, so on  and socioeconomic indicators to predict their final score. ",
                       style: TextStyle(fontSize: 15),
                     ),
                   ),
@@ -226,13 +226,13 @@ class _PredictionScreenState extends State<PredictionScreen> {
                 const Divider(),
                 _buildNumericField(_attendanceController, 'Attendance (%)', Icons.calendar_today),
                 const SizedBox(height: 12),
-                _buildNumericField(_midtermController, 'Midterm Score', Icons.assignment),
+                _buildNumericField(_midtermController, 'Midterm Score(0-100)', Icons.assignment),
                 const SizedBox(height: 12),
-                _buildNumericField(_assignmentsController, 'Assignments Average', Icons.library_books),
+                _buildNumericField(_assignmentsController, 'Assignments Average(0-100)', Icons.library_books),
                 const SizedBox(height: 12),
-                _buildNumericField(_quizzesController, 'Quizzes Average', Icons.quiz),
+                _buildNumericField(_quizzesController, 'Quizzes Average(0-100)', Icons.quiz),
                 const SizedBox(height: 12),
-                _buildNumericField(_projectsController, 'Projects Score', Icons.science),
+                _buildNumericField(_projectsController, 'Projects Score(0-100)', Icons.science),
                 const SizedBox(height: 24),
 
                 // SOCIOECONOMIC INDICATORS SECTION
