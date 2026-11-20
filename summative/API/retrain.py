@@ -16,7 +16,7 @@ def retrain_model_from_csv(
     try:
         new_df = pd.read_csv(io.BytesIO(contents))
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Could not parse CSV file: {str(exc)}")
+        raise HTTPException(status_code=400, detail=f"Could not parse CSV file. You might have upload wrong file. CSV should contain required features and well formatted: {str(exc)}")
 
     required_cols = feature_columns + [target_column]
     missing_cols = [col for col in required_cols if col not in new_df.columns]

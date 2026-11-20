@@ -26,13 +26,9 @@ app = FastAPI(
 )
 
 ALLOWED_ORIGINS = [
-    "http://localhost",
-    "http://localhost:3000",
     "http://localhost:8000",
-    "http://localhost:8080",
     "http://127.0.0.1:8000",
-    "http://127.0.0.1:8080",
-    "https://performance-checker-service.onrender.com",
+    "https://student-academic-performance-checker-service.onrender.com",
 ]
 
 app.add_middleware(
@@ -188,13 +184,13 @@ def predict_score(student: StudentPredictionInput):
 
     if predicted_score < 60.0:
         risk_status = "High Risk"
-        message = "Immediate academic tutoring and socioeconomic support recommended before final exams."
+        message = "This student needs academic tutoring and socioeconomic support before final exams to be able succeed."
     elif predicted_score < 75.0:
         risk_status = "Moderate Risk"
-        message = "Monitor coursework closely and check in on study resources."
+        message = "Studying more time, checking  courseworks, and other study materials is recommended to do better."
     else:
         risk_status = "On Track"
-        message = "Student is progressing well toward a strong final cumulative score."
+        message = "Student is doing well, and to keep this good progress up, better to take more study hours and read study materials."
 
     return PredictionResponse(
         predicted_total_score=predicted_score,
