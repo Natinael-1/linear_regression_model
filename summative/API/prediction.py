@@ -184,13 +184,21 @@ def predict_score(student: StudentPredictionInput):
 
     if predicted_score < 60.0:
         risk_status = "High Risk"
-        message = "This student needs academic tutoring and socioeconomic support before final exams to be able succeed."
+        message = ("This student needs academic tutoring and socioeconomic support before final exams to be able succeed. "
+                   "NGOs, Scholarship Providers, and School Adminstratives should support this student."
+                   
+                   )
     elif predicted_score < 75.0:
         risk_status = "Moderate Risk"
-        message = "Studying more time, checking  courseworks, and other study materials is recommended to do better."
+        message = ("Studying more time, checking  courseworks, and other study materials is recommended to do better. "
+                   "School should provide enough study materials, longer library access, and other resources for this student "
+                   "to succeed in final exam."
+                   )
     else:
         risk_status = "On Track"
-        message = "Student is doing well, and to keep this good progress up, better to take more study hours and read study materials."
+        message = ("Student is doing well, and to keep this good progress up, better to take more study hours and read study materials."
+                   "School should work closely with this student so that he can support his peers, team work and others"
+                   )
 
     return PredictionResponse(
         predicted_total_score=predicted_score,

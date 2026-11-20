@@ -43,7 +43,7 @@ class PredictionScreen extends StatefulWidget {
 
 class _PredictionScreenState extends State<PredictionScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  static const String _apiUrl = "http://10.0.2.2:8000/predict"; //'https://your-service.onrender.com/predict';
+  static const String _apiUrl = "https://student-academic-performance-checker.onrender.com/predict"; 
 
   // Controllers for the 5 numeric percentage inputs (0.0 - 100.0)
   final TextEditingController _attendanceController = TextEditingController();
