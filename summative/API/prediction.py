@@ -28,7 +28,7 @@ app = FastAPI(
 ALLOWED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
-    "https://student-academic-performance-checker-service.onrender.com",
+    "https://student-academic-performance-checker.onrender.com",
 ]
 
 app.add_middleware(
