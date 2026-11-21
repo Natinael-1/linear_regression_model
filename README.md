@@ -102,7 +102,7 @@ The regression pipeline predicts a student's final cumulative score (`Total_Scor
 
 ## 4. Video Demo
 
-- **YouTube Demo:** [Insert your YouTube video link here]
+- **YouTube Demo:** [https://youtu.be/_ik5hgd9pe4]
 
 ---
 
