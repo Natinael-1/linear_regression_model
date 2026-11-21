@@ -1,4 +1,4 @@
-# Student Academic Performance Checker and Early Warning System
+# Student Academic Performance Tracker
 
 ## 1. Mission and Problem
 
