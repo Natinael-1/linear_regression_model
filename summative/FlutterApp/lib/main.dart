@@ -57,7 +57,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
   String _familyIncome = 'Medium';
   String _parentEducation = 'High School';
 
-  // Allowed dropdown options matching our Pydantic schema
+  // Allowed dropdown options matching Pydantic schema
   final List<String> _internetOptions = ['Yes', 'No'];
   final List<String> _incomeOptions = ['Low', 'Medium', 'High'];
   final List<String> _educationOptions = [
@@ -121,7 +121,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
 
   //Packages the form data into JSON, sends it to FastAPI, and parses the response.
   Future<void> _predictScore() async {
-    // 1. Trigger the _validatePercentage check on all 5 text fields
+    // Trigger the _validatePercentage check on all 5 text fields
     if (!_formKey.currentState!.validate()) {
       return; // Stop immediately if any field is invalid
     }
@@ -134,7 +134,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
       _advisoryMessage = null;
     });
 
-    // Build the JSON payload using exactly the snake_case keys your Pydantic schema expects
+    // Build the JSON payload using exactly the snake_case keys 
     final Map<String, dynamic> payload = {
       "attendance": double.parse(_attendanceController.text.trim()),
       "midterm_score": double.parse(_midtermController.text.trim()),
@@ -221,7 +221,6 @@ class _PredictionScreenState extends State<PredictionScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // ACADEMIC METRICS SECTION
                 const Text('Academic Performance (0 - 100)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const Divider(),
                 _buildNumericField(_attendanceController, 'Attendance (%)', Icons.calendar_today),
@@ -235,7 +234,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
                 _buildNumericField(_projectsController, 'Projects Score(0-100)', Icons.science),
                 const SizedBox(height: 24),
 
-                // SOCIOECONOMIC INDICATORS SECTION
+                
                 const Text('Socioeconomic Context', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const Divider(),
                 _buildDropdownField(
@@ -263,7 +262,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // ACTION BUTTON
+                
                 SizedBox(
                   height: 50,
                   child: ElevatedButton(
@@ -280,7 +279,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // 5. RESULT & ERROR DISPLAY AREA
+                
                 if (_errorMessage != null)
                   Card(
                     color: Colors.red.shade50,
